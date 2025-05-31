@@ -11,9 +11,5 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
-  ],
-  "env": {
-    "NEWSAPI_KEY": "@newsapi_key",
-    "OPENAI_API_KEY": "@openai_api_key"
-  }
+  ]
 } 

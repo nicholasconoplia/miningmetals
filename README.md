@@ -1,8 +1,8 @@
-# 🚀 ASX Listing Email Generator
+# 🚀 Stock Exchange Email Generator
 
-A powerful AI-driven web application that transforms company databases into personalized ASX listing outreach emails. Built with Flask, powered by OpenAI GPT, and enhanced with real-time news integration.
+A powerful AI-driven web application that transforms company databases into personalized stock exchange listing outreach emails. Built with Flask, powered by OpenAI GPT, and enhanced with real-time news integration.
 
-![ASX Listing Generator](https://img.shields.io/badge/Status-Live-brightgreen)
+![Stock Exchange Email Generator](https://img.shields.io/badge/Status-Live-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.1.1-green)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--3.5-orange)
@@ -21,7 +21,7 @@ A powerful AI-driven web application that transforms company databases into pers
 
 ### 📰 **Real-Time News Integration**
 - **NewsAPI Integration**: Fetches latest company-specific headlines
-- **Contextual Analysis**: Connects news to ASX listing opportunities
+- **Contextual Analysis**: Connects news to stock exchange listing opportunities
 - **Rich Content**: Includes article summaries for deeper insights
 
 ### 🔍 **Advanced Filtering System**
@@ -182,7 +182,7 @@ python main.py
 - Company, Company Name, Name, Symbol, Ticker
 
 ### Optional Columns:
-- **Exchange**: NYSE, NASDAQ, TSX, LSE, ASX
+- **Exchange**: NYSE, NASDAQ, TSX, LSE, etc.
 - **Geographic**: Country, City, Location, Headquarters
 - **Financial**: Market Cap, Revenue, EBITDA
 - **Industry**: Sector, Industry, Business Type

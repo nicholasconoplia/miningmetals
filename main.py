@@ -25,7 +25,7 @@ os.makedirs("templates", exist_ok=True)
 # Health check endpoint for Vercel
 @app.route("/health")
 def health_check():
-    return {"status": "healthy", "message": "ASX Email Generator is running"}, 200
+    return {"status": "healthy", "message": "Stock Exchange Email Generator is running"}, 200
 
 def find_column(df, possible_names):
     """
@@ -436,7 +436,7 @@ def generate_emails():
             completion = client.chat.completions.create(
                 model="gpt-3.5-turbo",  # free-trial tier model
                 messages=[
-                    {"role": "system", "content": "You are an email generator specializing in ASX listing outreach."},
+                    {"role": "system", "content": "You are an email generator specializing in stock exchange listing outreach."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=250,
@@ -466,7 +466,7 @@ def generate_emails():
 
 def analyze_company_data(row, df_columns):
     """
-    Intelligently analyze all available company data and categorize by relevance to ASX listing
+    Intelligently analyze all available company data and categorize by relevance to stock exchange listing
     """
     company_data = {
         'financial_metrics': {},
@@ -477,7 +477,7 @@ def analyze_company_data(row, df_columns):
         'other_relevant': {}
     }
     
-    # Define column categories for ASX listing relevance
+    # Define column categories for stock exchange listing relevance
     financial_keywords = ['market_cap', 'revenue', 'profit', 'ebitda', 'assets', 'debt', 'cash', 'capital', 'valuation', 'shares', 'price', 'dividend']
     business_keywords = ['sector', 'industry', 'business', 'description', 'products', 'services', 'operations', 'subsidiaries']
     geographic_keywords = ['country', 'headquarters', 'location', 'region', 'australian', 'asia', 'pacific', 'office']
@@ -529,7 +529,7 @@ def create_intelligent_prompt(company_name, company_data, headlines):
     # Build dynamic sections based on available data
     prompt_sections = []
     
-    prompt_sections.append(f"You are writing a highly personalized ASX listing proposal email to {company_name}.")
+    prompt_sections.append(f"You are writing a highly personalized stock exchange listing proposal email to {company_name}.")
     
     # Company Profile Section
     profile_details = []
@@ -573,17 +573,17 @@ def create_intelligent_prompt(company_name, company_data, headlines):
     # Australian connection
     aus_connection = any('australian' in str(v).lower() for v in geographic_info.values())
     if aus_connection:
-        strategic_points.append("- Leverage existing Australian presence for natural ASX progression")
+        strategic_points.append("- Leverage existing Australian presence for natural market progression")
     
     # Financial scale
     has_large_market_cap = any('billion' in str(v).lower() or 'million' in str(v).lower() for v in financial_info.values())
     if has_large_market_cap:
-        strategic_points.append("- Scale and financial profile suitable for ASX institutional investors")
+        strategic_points.append("- Scale and financial profile suitable for institutional investors")
     
     # Geographic expansion
     asia_pacific_presence = any(region in str(geographic_info).lower() for region in ['asia', 'pacific', 'singapore', 'hong kong', 'japan'])
     if asia_pacific_presence:
-        strategic_points.append("- Asia-Pacific presence aligns with ASX's regional investor base")
+        strategic_points.append("- Asia-Pacific presence aligns with regional investor base")
     
     # Add other relevant information
     if other_info:
@@ -599,7 +599,7 @@ def create_intelligent_prompt(company_name, company_data, headlines):
 TASK: Write a compelling, research-driven email that:
 1. Opens with specific reference to their recent developments or business profile
 2. Demonstrates deep understanding of their business and current situation
-3. Connects their specific circumstances to ASX listing advantages
+3. Connects their specific circumstances to stock exchange listing advantages
 4. Creates urgency based on their growth trajectory and market position
 5. Includes a clear call-to-action
 
@@ -608,7 +608,7 @@ STRATEGIC FOCUS AREAS:""")
     if strategic_points:
         prompt_sections.append("\n".join(strategic_points))
     else:
-        prompt_sections.append("- Access to Australian and Asia-Pacific capital markets\n- Regulatory advantages and investor familiarity\n- Currency diversification benefits")
+        prompt_sections.append("- Access to international capital markets\n- Regulatory advantages and investor familiarity\n- Currency diversification benefits")
     
     prompt_sections.append("""
 TONE: Professional, well-researched, and consultative (demonstrate you've done homework)
