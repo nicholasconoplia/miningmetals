@@ -18,6 +18,15 @@ app = Flask(__name__)
 # 3. Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# 4. Ensure required directories exist
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("templates", exist_ok=True)
+
+# Health check endpoint for Vercel
+@app.route("/health")
+def health_check():
+    return {"status": "healthy", "message": "ASX Email Generator is running"}, 200
+
 def find_column(df, possible_names):
     """
     Helper function to find a column from a list of possible names
