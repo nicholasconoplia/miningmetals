@@ -290,13 +290,147 @@
             font-size: 12px;
         }
         
+        .view-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .view-btn {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .view-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .view-btn:hover:not(.active) {
+            background: #e5e7eb;
+        }
+        
+        .company-container {
+            margin-bottom: 40px;
+        }
+        
+        /* List View Styles */
+        .company-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .company-list-item {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .company-list-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .company-list-item.selected {
+            border-color: #667eea;
+            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.15);
+            background: rgba(102, 126, 234, 0.02);
+        }
+        
+        .company-list-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+        
+        .company-list-main {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 300px;
+        }
+        
+        .company-list-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            min-width: 150px;
+        }
+        
+        .company-list-exchange {
+            display: inline-block;
+            padding: 4px 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .company-list-details {
+            display: flex;
+            gap: 30px;
+            flex: 1;
+            flex-wrap: wrap;
+        }
+        
+        .list-detail-item {
+            display: flex;
+            flex-direction: column;
+            min-width: 100px;
+        }
+        
+        .list-detail-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+        
+        .list-detail-value {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        /* Grid View Styles (existing) */
         .company-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 20px;
-            margin-bottom: 40px;
         }
         
+        .company-grid.hidden {
+            display: none;
+        }
+        
+        .company-list.hidden {
+            display: none;
+        }
+        
+        /* Grid View Card Styles */
         .company-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -404,6 +538,7 @@
             transform: none;
         }
         
+        /* Responsive adjustments for list view */
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -417,6 +552,26 @@
             
             .company-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .company-list-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .company-list-main {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .company-list-details {
+                gap: 15px;
+                width: 100%;
+            }
+            
+            .list-detail-item {
+                min-width: 80px;
             }
             
             .stats-card {
@@ -580,54 +735,112 @@
                 </div>
             </div>
             
-            <!-- Company Grid -->
-            <div class="company-grid">
-                {% for company in companies %}
-                    <div class="company-card" onclick="toggleCompany(this, {{ company.original_index }})">
-                        <div class="company-header">
-                            <div class="company-info">
-                                <div class="company-name">{{ company.name }}</div>
-                                <div class="company-exchange">{{ company.exchange }}</div>
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button type="button" class="view-btn active" onclick="toggleView('list')">List View</button>
+                <button type="button" class="view-btn" onclick="toggleView('grid')">Grid View</button>
+            </div>
+            
+            <!-- Company Container -->
+            <div class="company-container">
+                <!-- List View -->
+                <div class="company-list">
+                    {% for company in companies %}
+                        <div class="company-list-item" onclick="toggleCompany(this, {{ company.original_index }})">
+                            <div class="company-list-content">
+                                <div class="company-list-main">
+                                    <div class="company-list-name">{{ company.name }}</div>
+                                    <div class="company-list-exchange">{{ company.exchange }}</div>
+                                </div>
+                                <div class="company-list-details">
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">Country</div>
+                                        <div class="list-detail-value">{{ company.country }}</div>
+                                    </div>
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">Sector</div>
+                                        <div class="list-detail-value">{{ company.sector }}</div>
+                                    </div>
+                                    {% if company.industry != 'N/A' %}
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">Industry</div>
+                                        <div class="list-detail-value">{{ company.industry }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if company.city != 'N/A' %}
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">City</div>
+                                        <div class="list-detail-value">{{ company.city }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if company.market_cap != 'N/A' %}
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">Market Cap</div>
+                                        <div class="list-detail-value">${{ "{:,.0f}".format(company.market_cap|float) if company.market_cap|string != 'N/A' else 'N/A' }}</div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="list-detail-item">
+                                        <div class="list-detail-label">Australian Sub</div>
+                                        <div class="list-detail-value">{{ company.has_aus_sub }}</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="checkbox-wrapper">
-                                <input type="checkbox" name="company" value="{{ company.original_index }}" class="company-checkbox">
+                                <input type="checkbox" name="company" value="{{ company.original_index }}" class="company-checkbox" onclick="event.stopPropagation(); toggleCompanyCheckbox(this);">
                             </div>
                         </div>
-                        
-                        <div class="company-details">
-                            <div class="detail-item">
-                                <div class="detail-label">Country</div>
-                                <div class="detail-value">{{ company.country }}</div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Grid View -->
+                <div class="company-grid hidden">
+                    {% for company in companies %}
+                        <div class="company-card" onclick="toggleCompany(this, {{ company.original_index }})">
+                            <div class="company-header">
+                                <div class="company-info">
+                                    <div class="company-name">{{ company.name }}</div>
+                                    <div class="company-exchange">{{ company.exchange }}</div>
+                                </div>
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" name="company" value="{{ company.original_index }}" class="company-checkbox" onclick="event.stopPropagation(); toggleCompanyCheckbox(this);">
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <div class="detail-label">Sector</div>
-                                <div class="detail-value">{{ company.sector }}</div>
-                            </div>
-                            {% if company.industry != 'N/A' %}
-                            <div class="detail-item">
-                                <div class="detail-label">Industry</div>
-                                <div class="detail-value">{{ company.industry }}</div>
-                            </div>
-                            {% endif %}
-                            {% if company.city != 'N/A' %}
-                            <div class="detail-item">
-                                <div class="detail-label">City</div>
-                                <div class="detail-value">{{ company.city }}</div>
-                            </div>
-                            {% endif %}
-                            {% if company.market_cap != 'N/A' %}
-                            <div class="detail-item">
-                                <div class="detail-label">Market Cap</div>
-                                <div class="detail-value">${{ "{:,.0f}".format(company.market_cap|float) if company.market_cap|string != 'N/A' else 'N/A' }}</div>
-                            </div>
-                            {% endif %}
-                            <div class="detail-item">
-                                <div class="detail-label">Australian Sub</div>
-                                <div class="detail-value">{{ company.has_aus_sub }}</div>
+                            
+                            <div class="company-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">Country</div>
+                                    <div class="detail-value">{{ company.country }}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">Sector</div>
+                                    <div class="detail-value">{{ company.sector }}</div>
+                                </div>
+                                {% if company.industry != 'N/A' %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Industry</div>
+                                    <div class="detail-value">{{ company.industry }}</div>
+                                </div>
+                                {% endif %}
+                                {% if company.city != 'N/A' %}
+                                <div class="detail-item">
+                                    <div class="detail-label">City</div>
+                                    <div class="detail-value">{{ company.city }}</div>
+                                </div>
+                                {% endif %}
+                                {% if company.market_cap != 'N/A' %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Market Cap</div>
+                                    <div class="detail-value">${{ "{:,.0f}".format(company.market_cap|float) if company.market_cap|string != 'N/A' else 'N/A' }}</div>
+                                </div>
+                                {% endif %}
+                                <div class="detail-item">
+                                    <div class="detail-label">Australian Sub</div>
+                                    <div class="detail-value">{{ company.has_aus_sub }}</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
             
             <!-- Submit Section -->
@@ -646,30 +859,44 @@
         function toggleAll() {
             const selectAllCheckbox = document.getElementById('selectAllCheckbox');
             const companyCheckboxes = document.querySelectorAll('.company-checkbox');
-            const companyCards = document.querySelectorAll('.company-card');
+            const companyCards = document.querySelectorAll('.company-card, .company-list-item');
             
             selectAllCheckbox.checked = !selectAllCheckbox.checked;
             
             companyCheckboxes.forEach((checkbox, index) => {
                 checkbox.checked = selectAllCheckbox.checked;
+                const card = checkbox.closest('.company-card, .company-list-item');
                 if (selectAllCheckbox.checked) {
-                    companyCards[index].classList.add('selected');
+                    card.classList.add('selected');
                 } else {
-                    companyCards[index].classList.remove('selected');
+                    card.classList.remove('selected');
                 }
             });
             
             updateSubmitButton();
         }
         
-        function toggleCompany(card, index) {
-            const checkbox = card.querySelector('.company-checkbox');
+        function toggleCompany(element, index) {
+            const checkbox = element.querySelector('.company-checkbox');
             checkbox.checked = !checkbox.checked;
             
             if (checkbox.checked) {
-                card.classList.add('selected');
+                element.classList.add('selected');
             } else {
-                card.classList.remove('selected');
+                element.classList.remove('selected');
+            }
+            
+            updateSelectAllState();
+            updateSubmitButton();
+        }
+        
+        function toggleCompanyCheckbox(checkbox) {
+            const element = checkbox.closest('.company-card, .company-list-item');
+            
+            if (checkbox.checked) {
+                element.classList.add('selected');
+            } else {
+                element.classList.remove('selected');
             }
             
             updateSelectAllState();
@@ -681,7 +908,7 @@
             const companyCheckboxes = document.querySelectorAll('.company-checkbox');
             const checkedBoxes = document.querySelectorAll('.company-checkbox:checked');
             
-            selectAllCheckbox.checked = checkedBoxes.length === companyCheckboxes.length;
+            selectAllCheckbox.checked = checkedBoxes.length === companyCheckboxes.length && companyCheckboxes.length > 0;
         }
         
         function updateSubmitButton() {
@@ -697,8 +924,36 @@
             }
         }
         
+        function toggleView(view) {
+            const listView = document.querySelector('.company-list');
+            const gridView = document.querySelector('.company-grid');
+            const listBtn = document.querySelector('.view-btn[onclick*="list"]');
+            const gridBtn = document.querySelector('.view-btn[onclick*="grid"]');
+            
+            // Remove active class from all buttons
+            listBtn.classList.remove('active');
+            gridBtn.classList.remove('active');
+            
+            if (view === 'list') {
+                listView.classList.remove('hidden');
+                gridView.classList.add('hidden');
+                listBtn.classList.add('active');
+            } else if (view === 'grid') {
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                gridBtn.classList.add('active');
+            }
+        }
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // List view is already default (no hidden class)
+            // Just ensure the button states are correct
+            const listBtn = document.querySelector('.view-btn[onclick*="list"]');
+            const gridBtn = document.querySelector('.view-btn[onclick*="grid"]');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+            
             updateSubmitButton();
             
             document.getElementById('selectionForm').addEventListener('submit', function() {
