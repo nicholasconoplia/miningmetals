@@ -141,9 +141,34 @@ if __name__ == "__main__":
     tech_companies = [c for c in sample_data if c["Sector"] == "Technology"]
     save_to_csv(tech_companies, "test_data/technology_companies.csv")
     
+    # Create sample data with real ticker symbols for testing PowerPoint functionality
+    data = {
+        'Company': ['Apple Inc.', 'Microsoft Corporation', 'Amazon.com Inc.', 'Alphabet Inc.', 'Tesla Inc.', 'NVIDIA Corporation'],
+        'Ticker': ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'TSLA', 'NVDA'], 
+        'Exchange': ['NASDAQ', 'NASDAQ', 'NASDAQ', 'NASDAQ', 'NASDAQ', 'NASDAQ'],
+        'Country': ['USA', 'USA', 'USA', 'USA', 'USA', 'USA'],
+        'Sector': ['Technology', 'Technology', 'Consumer Discretionary', 'Technology', 'Consumer Discretionary', 'Technology'],
+        'Industry': ['Consumer Electronics', 'Software', 'E-commerce', 'Internet Services', 'Electric Vehicles', 'Semiconductors'],
+        'Market_Cap_USD': [3000000000000, 2800000000000, 1500000000000, 1700000000000, 800000000000, 2200000000000],
+        'Has_Australian_Subsidiary': ['Yes', 'Yes', 'Yes', 'Yes', 'Yes', 'No'],
+        'CEO_Name': ['Tim Cook', 'Satya Nadella', 'Andy Jassy', 'Sundar Pichai', 'Elon Musk', 'Jensen Huang'],
+        'CEO_Email': ['tcook@apple.com', 'satyan@microsoft.com', 'ajassy@amazon.com', 'sundar@google.com', 'elon@tesla.com', 'jhuang@nvidia.com'],
+        'IR_Contact_Email': ['investor@apple.com', 'investor@microsoft.com', 'ir@amazon.com', 'investor@alphabet.com', 'ir@tesla.com', 'ir@nvidia.com'],
+        'City': ['Cupertino', 'Redmond', 'Seattle', 'Mountain View', 'Austin', 'Santa Clara']
+    }
+
+    df = pd.DataFrame(data)
+    df.to_csv('test_companies_with_tickers.csv', index=False)
+    print("Sample data with real tickers created: test_companies_with_tickers.csv")
+    print(f"Created {len(df)} companies for testing PowerPoint functionality")
+    print("\nCompanies included:")
+    for _, row in df.iterrows():
+        print(f"- {row['Company']} ({row['Ticker']}) - {row['Market_Cap_USD']/1e9:.0f}B market cap")
+    
     print("\n🎉 Sample data creation complete!")
     print("📁 Files created in test_data/ directory:")
     print("   - sample_global_companies.csv (all companies)")
     print("   - us_companies_only.csv (US companies)")
     print("   - companies_with_aus_subsidiaries.csv (companies with Australian presence)")
-    print("   - technology_companies.csv (tech sector only)") 
+    print("   - technology_companies.csv (tech sector only)")
+    print("   - test_companies_with_tickers.csv (companies with real tickers)") 

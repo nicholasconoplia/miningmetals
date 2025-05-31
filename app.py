@@ -1,12 +1,30 @@
 # app.py - Main Flask application for Vercel
 
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify
 import pandas as pd
 import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 import tempfile
+import yfinance as yf
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
+import io
+import base64
+from datetime import datetime, timedelta
+import json
+
+# Try to import matplotlib only if available
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use('Agg')  # Use non-interactive backend for server environments
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
 
 # 1. Load environment variables from .env
 load_dotenv()
@@ -388,7 +406,7 @@ def generate_emails():
     except FileNotFoundError:
         return redirect(url_for("select_companies"))
 
-    results = []  # list of dicts: { company, market_cap, headlines, email_draft }
+    results = []  # list of dicts: { company, market_cap, headlines, email_draft, pptx_path, company_data }
 
     for idx in selected_indices:
         if idx < 0 or idx >= len(df):
@@ -405,6 +423,13 @@ def generate_emails():
         ceo_name = row.get("CEO_Name", row.get("CEO", row.get("Chief_Executive", "Unknown")))
         ceo_email = row.get("CEO_Email", row.get("CEO_Contact", "Unknown"))
         ir_contact = row.get("IR_Contact_Email", row.get("IR_Email", row.get("Investor_Relations", "Unknown")))
+
+        # Try to extract ticker symbol for financial data lookup
+        ticker_symbol = extract_ticker_symbol(company_name, exchange)
+        print(f"Processing {company_name}, ticker: {ticker_symbol}")
+
+        # Fetch comprehensive company data for PowerPoint
+        comprehensive_data = fetch_comprehensive_company_data(company_name, ticker_symbol)
 
         # 1. Fetch recent news from NewsAPI
         news_url = (
@@ -457,6 +482,14 @@ def generate_emails():
         except Exception as e:
             email_text = f"Error generating email: {e}"
 
+        # 3. Generate PowerPoint presentation
+        pptx_path = None
+        try:
+            pptx_path = create_company_powerpoint(company_name, comprehensive_data, row)
+            print(f"PowerPoint created for {company_name}: {pptx_path}")
+        except Exception as e:
+            print(f"Error creating PowerPoint for {company_name}: {e}")
+
         results.append({
             "company": company_name,
             "exchange": exchange,
@@ -469,11 +502,29 @@ def generate_emails():
             "ir_contact": ir_contact,
             "headlines": headlines,
             "email_draft": email_text,
-            "analyzed_data": company_data  # Include the analyzed data for transparency
+            "analyzed_data": company_data,  # Include the analyzed data for transparency
+            "pptx_path": pptx_path,  # PowerPoint file path
+            "comprehensive_data": comprehensive_data,  # Full financial data
+            "ticker_symbol": ticker_symbol  # Ticker symbol used
         })
 
     # 3. Render results in an HTML page
     return render_template("results.html", results=results)
+
+# Route to download PowerPoint files
+@app.route("/download_pptx/<filename>")
+def download_pptx(filename):
+    """
+    Download PowerPoint presentations
+    """
+    try:
+        file_path = f"/tmp/uploads/{filename}"
+        if os.path.exists(file_path):
+            return send_file(file_path, as_attachment=True, download_name=filename)
+        else:
+            return "File not found", 404
+    except Exception as e:
+        return f"Error downloading file: {e}", 500
 
 def analyze_company_data(row, df_columns):
     """
@@ -628,6 +679,438 @@ FORMAT: Professional business email with clear next steps
 REQUIREMENT: Make it clear this email is based on thorough research of their specific situation.""")
     
     return "\n\n".join(prompt_sections)
+
+# PowerPoint Generation Functions
+
+def fetch_comprehensive_company_data(company_name, ticker_symbol=None):
+    """
+    Fetch comprehensive company data from multiple sources including financial metrics,
+    stock price data, and company information
+    """
+    company_data = {
+        'basic_info': {},
+        'financial_metrics': {},
+        'stock_data': {},
+        'price_chart_data': None,
+        'key_stats': {},
+        'major_shareholders': [],
+        'recent_news': [],
+        'capital_raising': [],
+        'error': None
+    }
+    
+    try:
+        # Try to fetch data using yfinance if we have a ticker
+        if ticker_symbol:
+            try:
+                stock = yf.Ticker(ticker_symbol)
+                
+                # Get basic company info
+                info = stock.info
+                company_data['basic_info'] = {
+                    'name': info.get('longName', company_name),
+                    'sector': info.get('sector', 'N/A'),
+                    'industry': info.get('industry', 'N/A'),
+                    'country': info.get('country', 'N/A'),
+                    'website': info.get('website', 'N/A'),
+                    'description': info.get('longBusinessSummary', 'N/A')[:500] + '...' if info.get('longBusinessSummary') else 'N/A'
+                }
+                
+                # Get financial metrics
+                company_data['financial_metrics'] = {
+                    'market_cap': info.get('marketCap'),
+                    'revenue': info.get('totalRevenue'),
+                    'profit_margin': info.get('profitMargins'),
+                    'pe_ratio': info.get('trailingPE'),
+                    'price_to_book': info.get('priceToBook'),
+                    'debt_to_equity': info.get('debtToEquity'),
+                    'return_on_equity': info.get('returnOnEquity'),
+                    'revenue_growth': info.get('revenueGrowth')
+                }
+                
+                # Get current stock data
+                company_data['stock_data'] = {
+                    'current_price': info.get('currentPrice'),
+                    'previous_close': info.get('previousClose'),
+                    'day_change': info.get('currentPrice', 0) - info.get('previousClose', 0) if info.get('currentPrice') and info.get('previousClose') else 0,
+                    'day_change_percent': ((info.get('currentPrice', 0) - info.get('previousClose', 0)) / info.get('previousClose', 1)) * 100 if info.get('currentPrice') and info.get('previousClose') else 0,
+                    '52_week_high': info.get('fiftyTwoWeekHigh'),
+                    '52_week_low': info.get('fiftyTwoWeekLow'),
+                    'volume': info.get('volume'),
+                    'avg_volume': info.get('averageVolume')
+                }
+                
+                # Get key statistics
+                company_data['key_stats'] = {
+                    'employees': info.get('fullTimeEmployees'),
+                    'dividend_yield': info.get('dividendYield'),
+                    'payout_ratio': info.get('payoutRatio'),
+                    'beta': info.get('beta'),
+                    'shares_outstanding': info.get('sharesOutstanding'),
+                    'float_shares': info.get('floatShares')
+                }
+                
+                # Get major shareholders (top 10)
+                try:
+                    major_holders = stock.major_holders
+                    if major_holders is not None and not major_holders.empty:
+                        company_data['major_shareholders'] = major_holders.to_dict('records')[:5]  # Top 5
+                except:
+                    pass
+                
+                # Get 5-year price data for chart
+                try:
+                    end_date = datetime.now()
+                    start_date = end_date - timedelta(days=5*365)  # 5 years
+                    hist_data = stock.history(start=start_date, end=end_date, interval='1mo')  # Monthly data
+                    
+                    if not hist_data.empty:
+                        company_data['price_chart_data'] = {
+                            'dates': [date.strftime('%Y-%m') for date in hist_data.index],
+                            'prices': hist_data['Close'].tolist(),
+                            'volumes': hist_data['Volume'].tolist()
+                        }
+                except Exception as e:
+                    print(f"Error fetching price data: {e}")
+                
+                # Get recent news
+                try:
+                    news = stock.news[:5]  # Get top 5 news items
+                    company_data['recent_news'] = [
+                        {
+                            'title': item.get('title', ''),
+                            'publisher': item.get('publisher', ''),
+                            'link': item.get('link', ''),
+                            'published': datetime.fromtimestamp(item.get('providerPublishTime', 0)).strftime('%Y-%m-%d') if item.get('providerPublishTime') else ''
+                        }
+                        for item in news if item.get('title')
+                    ]
+                except:
+                    pass
+                    
+            except Exception as e:
+                company_data['error'] = f"Error fetching data for {ticker_symbol}: {str(e)}"
+                print(f"Error fetching yfinance data: {e}")
+        
+        # If no ticker or yfinance failed, try to search for more info
+        if not company_data['basic_info'] or company_data['error']:
+            company_data['basic_info'] = {
+                'name': company_name,
+                'sector': 'N/A',
+                'industry': 'N/A', 
+                'country': 'N/A',
+                'website': 'N/A',
+                'description': f'No detailed information available for {company_name}. This company may be privately held or listed on a regional exchange.'
+            }
+    
+    except Exception as e:
+        company_data['error'] = f"General error: {str(e)}"
+        print(f"General error in fetch_comprehensive_company_data: {e}")
+    
+    return company_data
+
+def create_stock_price_chart(company_data, company_name):
+    """
+    Create a 5-year stock price chart using matplotlib if available,
+    otherwise create a simple text representation
+    """
+    try:
+        if not MATPLOTLIB_AVAILABLE:
+            # Create a simple text-based chart representation
+            if company_data.get('price_chart_data'):
+                price_data = company_data['price_chart_data']
+                prices = price_data['prices']
+                if prices:
+                    min_price = min(prices)
+                    max_price = max(prices)
+                    latest_price = prices[-1]
+                    change_5y = ((latest_price - prices[0]) / prices[0]) * 100 if prices[0] > 0 else 0
+                    
+                    chart_text = f"""
+5-Year Stock Performance Summary for {company_name}:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Starting Price: ${prices[0]:.2f}
+Current Price:  ${latest_price:.2f}
+5-Year Change:  {change_5y:+.1f}%
+
+Price Range:
+Highest: ${max_price:.2f}
+Lowest:  ${min_price:.2f}
+
+Note: Detailed chart available in downloadable PowerPoint presentation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    """
+                    return chart_text
+            return f"Stock price data not available for {company_name}"
+        
+        if not company_data.get('price_chart_data'):
+            # Create a placeholder chart
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.text(0.5, 0.5, f'Stock price data not available for {company_name}', 
+                   horizontalalignment='center', verticalalignment='center', 
+                   transform=ax.transAxes, fontsize=14)
+            ax.set_title(f'{company_name} - 5 Year Stock Price Chart', fontsize=16, fontweight='bold')
+            plt.tight_layout()
+        else:
+            # Create actual chart
+            price_data = company_data['price_chart_data']
+            dates = price_data['dates']
+            prices = price_data['prices']
+            
+            fig, ax = plt.subplots(figsize=(12, 7))
+            
+            # Plot the price line
+            ax.plot(dates, prices, linewidth=2.5, color='#2E86C1', alpha=0.8)
+            ax.fill_between(dates, prices, alpha=0.3, color='#85C1E9')
+            
+            # Styling
+            ax.set_title(f'{company_name} - 5 Year Stock Price Performance', 
+                        fontsize=16, fontweight='bold', pad=20)
+            ax.set_xlabel('Year', fontsize=12)
+            ax.set_ylabel('Stock Price ($)', fontsize=12)
+            ax.grid(True, alpha=0.3)
+            
+            # Format x-axis to show fewer labels
+            ax.set_xticks(ax.get_xticks()[::6])  # Show every 6th tick
+            
+            # Add some styling
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+        
+        # Save to bytes
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
+        img_buffer.seek(0)
+        
+        # Convert to base64
+        img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+        plt.close()
+        
+        return img_base64
+        
+    except Exception as e:
+        print(f"Error creating chart: {e}")
+        return None
+
+def create_company_powerpoint(company_name, company_data, financial_data_from_csv=None):
+    """
+    Create a comprehensive PowerPoint presentation for the company
+    """
+    try:
+        # Create presentation
+        prs = Presentation()
+        
+        # Set slide dimensions (16:9 aspect ratio)
+        prs.slide_width = Inches(13.33)
+        prs.slide_height = Inches(7.5)
+        
+        # Slide 1: Company Overview
+        slide1 = prs.slides.add_slide(prs.slide_layouts[5])  # Blank layout
+        
+        # Title
+        title_box = slide1.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+        title_frame = title_box.text_frame
+        title_frame.text = f"{company_data['basic_info']['name']} - Investment Overview"
+        title_para = title_frame.paragraphs[0]
+        title_para.font.size = Pt(28)
+        title_para.font.bold = True
+        title_para.font.color.rgb = RGBColor(44, 62, 80)
+        title_para.alignment = PP_ALIGN.CENTER
+        
+        # Company description
+        desc_box = slide1.shapes.add_textbox(Inches(1), Inches(1.8), Inches(11), Inches(3))
+        desc_frame = desc_box.text_frame
+        desc_frame.word_wrap = True
+        
+        # Basic company info
+        basic_info = company_data['basic_info']
+        description = f"""
+COMPANY OVERVIEW:
+{basic_info.get('description', 'N/A')}
+
+SECTOR: {basic_info.get('sector', 'N/A')}
+INDUSTRY: {basic_info.get('industry', 'N/A')}
+COUNTRY: {basic_info.get('country', 'N/A')}
+        """
+        
+        desc_frame.text = description.strip()
+        for paragraph in desc_frame.paragraphs:
+            paragraph.font.size = Pt(14)
+            paragraph.font.color.rgb = RGBColor(52, 73, 94)
+        
+        # Key metrics box
+        metrics_box = slide1.shapes.add_textbox(Inches(1), Inches(5), Inches(11), Inches(2))
+        metrics_frame = metrics_box.text_frame
+        
+        financial_metrics = company_data['financial_metrics']
+        stock_data = company_data['stock_data']
+        
+        def format_number(value, is_currency=False, is_percentage=False):
+            if value is None or value == 'N/A':
+                return 'N/A'
+            try:
+                if is_percentage:
+                    return f"{float(value)*100:.1f}%" if value < 1 else f"{float(value):.1f}%"
+                elif is_currency:
+                    if float(value) >= 1e9:
+                        return f"${float(value)/1e9:.1f}B"
+                    elif float(value) >= 1e6:
+                        return f"${float(value)/1e6:.1f}M"
+                    else:
+                        return f"${float(value):,.0f}"
+                else:
+                    return f"{float(value):,.2f}"
+            except:
+                return str(value)
+        
+        metrics_text = f"""KEY FINANCIAL METRICS:
+Market Cap: {format_number(financial_metrics.get('market_cap'), is_currency=True)}  |  Current Price: {format_number(stock_data.get('current_price'), is_currency=True)}  |  P/E Ratio: {format_number(financial_metrics.get('pe_ratio'))}
+Revenue: {format_number(financial_metrics.get('revenue'), is_currency=True)}  |  Profit Margin: {format_number(financial_metrics.get('profit_margin'), is_percentage=True)}  |  Beta: {format_number(company_data['key_stats'].get('beta'))}"""
+        
+        metrics_frame.text = metrics_text
+        for paragraph in metrics_frame.paragraphs:
+            paragraph.font.size = Pt(12)
+            paragraph.font.bold = True
+            paragraph.font.color.rgb = RGBColor(39, 174, 96)
+        
+        # Slide 2: Financial Performance & Stock Chart
+        slide2 = prs.slides.add_slide(prs.slide_layouts[5])  # Blank layout
+        
+        # Title
+        title_box2 = slide2.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12), Inches(0.8))
+        title_frame2 = title_box2.text_frame
+        title_frame2.text = f"{company_name} - Financial Performance & Market Data"
+        title_para2 = title_frame2.paragraphs[0]
+        title_para2.font.size = Pt(24)
+        title_para2.font.bold = True
+        title_para2.font.color.rgb = RGBColor(44, 62, 80)
+        title_para2.alignment = PP_ALIGN.CENTER
+        
+        # Create and add stock chart
+        chart_base64 = create_stock_price_chart(company_data, company_name)
+        if chart_base64:
+            if MATPLOTLIB_AVAILABLE and not isinstance(chart_base64, str):
+                # Save chart to temp file (base64 image)
+                chart_data = base64.b64decode(chart_base64)
+                chart_path = f"/tmp/uploads/{company_name}_chart.png"
+                with open(chart_path, 'wb') as f:
+                    f.write(chart_data)
+                
+                # Add chart to slide
+                slide2.shapes.add_picture(chart_path, Inches(0.5), Inches(1.2), width=Inches(7))
+            else:
+                # Add text-based chart (when matplotlib not available)
+                chart_box = slide2.shapes.add_textbox(Inches(0.5), Inches(1.2), Inches(7), Inches(4))
+                chart_frame = chart_box.text_frame
+                chart_frame.word_wrap = True
+                chart_frame.text = chart_base64 if isinstance(chart_base64, str) else f"Chart data not available for {company_name}"
+                
+                for paragraph in chart_frame.paragraphs:
+                    paragraph.font.size = Pt(10)
+                    paragraph.font.name = 'Courier New'  # Monospace font for better text chart display
+                    paragraph.font.color.rgb = RGBColor(52, 73, 94)
+        
+        # Financial summary on the right
+        summary_box = slide2.shapes.add_textbox(Inches(8), Inches(1.2), Inches(5), Inches(5.5))
+        summary_frame = summary_box.text_frame
+        summary_frame.word_wrap = True
+        
+        # Create financial summary
+        summary_text = f"""INVESTMENT HIGHLIGHTS:
+
+📈 STOCK PERFORMANCE:
+• Current Price: {format_number(stock_data.get('current_price'), is_currency=True)}
+• 52W High: {format_number(stock_data.get('52_week_high'), is_currency=True)}
+• 52W Low: {format_number(stock_data.get('52_week_low'), is_currency=True)}
+• Day Change: {format_number(stock_data.get('day_change_percent'), is_percentage=True)}
+
+💰 FINANCIAL STRENGTH:
+• Revenue: {format_number(financial_metrics.get('revenue'), is_currency=True)}
+• Market Cap: {format_number(financial_metrics.get('market_cap'), is_currency=True)}
+• Profit Margin: {format_number(financial_metrics.get('profit_margin'), is_percentage=True)}
+• ROE: {format_number(financial_metrics.get('return_on_equity'), is_percentage=True)}
+
+📊 VALUATION METRICS:
+• P/E Ratio: {format_number(financial_metrics.get('pe_ratio'))}
+• Price-to-Book: {format_number(financial_metrics.get('price_to_book'))}
+• Beta: {format_number(company_data['key_stats'].get('beta'))}
+
+👥 SHAREHOLDERS:
+• Shares Outstanding: {format_number(company_data['key_stats'].get('shares_outstanding'))}
+• Full-time Employees: {format_number(company_data['key_stats'].get('employees'))}"""
+
+        summary_frame.text = summary_text
+        for paragraph in summary_frame.paragraphs:
+            paragraph.font.size = Pt(10)
+            paragraph.font.color.rgb = RGBColor(52, 73, 94)
+        
+        # Add major shareholders if available
+        if company_data.get('major_shareholders'):
+            shareholders_box = slide2.shapes.add_textbox(Inches(1), Inches(6.8), Inches(11), Inches(0.7))
+            shareholders_frame = shareholders_box.text_frame
+            shareholders_text = "MAJOR SHAREHOLDERS: " + " | ".join([f"{holder.get('Holder', 'N/A')}: {holder.get('Shares', 'N/A')}" for holder in company_data['major_shareholders'][:3]])
+            shareholders_frame.text = shareholders_text
+            shareholders_frame.paragraphs[0].font.size = Pt(9)
+            shareholders_frame.paragraphs[0].font.color.rgb = RGBColor(127, 140, 141)
+        
+        # Save PowerPoint
+        pptx_path = f"/tmp/uploads/{company_name}_analysis.pptx"
+        prs.save(pptx_path)
+        
+        return pptx_path
+        
+    except Exception as e:
+        print(f"Error creating PowerPoint: {e}")
+        return None
+
+def extract_ticker_symbol(company_name, exchange=None):
+    """
+    Try to extract or guess ticker symbol from company name
+    """
+    try:
+        # Simple heuristics for common ticker patterns
+        if len(company_name) <= 5 and company_name.isupper():
+            return company_name
+        
+        # Try searching with yfinance
+        search_variations = [
+            company_name,
+            company_name.upper(),
+            company_name.replace(' ', ''),
+            company_name.replace(' ', '-'),
+            company_name.split()[0] if ' ' in company_name else company_name
+        ]
+        
+        for variation in search_variations:
+            try:
+                # Add exchange suffixes for international markets
+                test_symbols = [variation]
+                if exchange:
+                    if 'TSX' in exchange or 'Toronto' in exchange:
+                        test_symbols.append(f"{variation}.TO")
+                    elif 'London' in exchange or 'LSE' in exchange:
+                        test_symbols.append(f"{variation}.L")
+                    elif 'ASX' in exchange or 'Australia' in exchange:
+                        test_symbols.append(f"{variation}.AX")
+                
+                for symbol in test_symbols:
+                    try:
+                        stock = yf.Ticker(symbol)
+                        info = stock.info
+                        if info and info.get('longName'):
+                            return symbol
+                    except:
+                        continue
+            except:
+                continue
+        
+        return None
+    except:
+        return None
 
 # For Vercel deployment
 if __name__ == "__main__":
