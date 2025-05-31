@@ -6,6 +6,7 @@ import pandas as pd
 import requests
 from openai import OpenAI
 from dotenv import load_dotenv
+import tempfile
 
 # 1. Load environment variables from .env
 load_dotenv()
@@ -19,7 +20,8 @@ app = Flask(__name__)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # 4. Ensure required directories exist
-os.makedirs("uploads", exist_ok=True)
+upload_dir = "/tmp/uploads"
+os.makedirs(upload_dir, exist_ok=True)
 os.makedirs("templates", exist_ok=True)
 
 # Health check endpoint for Vercel
@@ -43,140 +45,149 @@ def find_column(df, possible_names):
 @app.route("/", methods=["GET", "POST"])
 def upload_file():
     if request.method == "POST":
-        # A. Check if file part is in request
-        if "file" not in request.files:
-            return "No file part in the request", 400
-
-        file = request.files["file"]
-        if file.filename == "":
-            return "No file selected", 400
-
-        # B. Save the file to a temp location
-        filepath = os.path.join("uploads", file.filename)
-        os.makedirs("uploads", exist_ok=True)
-        file.save(filepath)
-
-        # C. Read the file with pandas (support CSV & Excel) - Enhanced with robust parsing
         try:
-            if filepath.lower().endswith(".csv"):
-                # Try multiple approaches for robust CSV reading
-                try:
-                    # First attempt: Standard reading
-                    df = pd.read_csv(filepath)
-                except Exception as e1:
+            # A. Check if file part is in request
+            if "file" not in request.files:
+                return "No file part in the request", 400
+
+            file = request.files["file"]
+            if file.filename == "":
+                return "No file selected", 400
+
+            # B. Save the file to a temp location
+            filepath = os.path.join("/tmp/uploads", file.filename)
+            os.makedirs("/tmp/uploads", exist_ok=True)
+            file.save(filepath)
+
+            # C. Read the file with pandas (support CSV & Excel) - Enhanced with robust parsing
+            try:
+                if filepath.lower().endswith(".csv"):
+                    # Try multiple approaches for robust CSV reading
                     try:
-                        # Second attempt: Handle malformed CSV with different options
-                        df = pd.read_csv(filepath, 
-                                       encoding='utf-8',
-                                       on_bad_lines='skip')
-                    except Exception as e2:
+                        # First attempt: Standard reading
+                        df = pd.read_csv(filepath)
+                    except Exception as e1:
                         try:
-                            # Third attempt: More lenient parsing
+                            # Second attempt: Handle malformed CSV with different options
                             df = pd.read_csv(filepath, 
-                                           sep=',',
-                                           quotechar='"',
-                                           skipinitialspace=True,
-                                           on_bad_lines='skip',
-                                           encoding='utf-8')
-                        except Exception as e3:
+                                           encoding='utf-8',
+                                           on_bad_lines='skip')
+                        except Exception as e2:
                             try:
-                                # Fourth attempt: Try different encoding
+                                # Third attempt: More lenient parsing
                                 df = pd.read_csv(filepath, 
+                                               sep=',',
+                                               quotechar='"',
+                                               skipinitialspace=True,
                                                on_bad_lines='skip',
-                                               encoding='latin-1')
-                            except Exception as e4:
+                                               encoding='utf-8')
+                            except Exception as e3:
                                 try:
-                                    # Fifth attempt: Very lenient parsing for older pandas
+                                    # Fourth attempt: Try different encoding
                                     df = pd.read_csv(filepath, 
-                                                   encoding='utf-8',
-                                                   sep=None,
-                                                   engine='python')
-                                except Exception as e5:
-                                    return f"Error reading CSV file. Please check file format. Main error: {str(e1)[:150]}", 400
-            else:
-                df = pd.read_excel(filepath)  # requires openpyxl installed
+                                                   on_bad_lines='skip',
+                                                   encoding='latin-1')
+                                except Exception as e4:
+                                    try:
+                                        # Fifth attempt: Very lenient parsing for older pandas
+                                        df = pd.read_csv(filepath, 
+                                                       encoding='utf-8',
+                                                       sep=None,
+                                                       engine='python')
+                                    except Exception as e5:
+                                        return f"Error reading CSV file. Please check file format. Main error: {str(e1)[:150]}", 400
+                else:
+                    df = pd.read_excel(filepath)  # requires openpyxl installed
+            except Exception as e:
+                return f"Error reading file: {e}", 400
+
+            # D. Intelligent column detection - find the main company identifier column
+            company_column = None
+            possible_company_names = ['Company', 'company', 'Company Name', 'company_name', 
+                                    'CompanyName', 'Name', 'name', 'Symbol', 'Ticker', 
+                                    'Company_Name', 'COMPANY', 'COMPANY_NAME', 'Issuer',
+                                    'Company Legal Name', 'Legal Name']
+            
+            for col_name in possible_company_names:
+                if col_name in df.columns:
+                    company_column = col_name
+                    break
+            
+            if company_column is None:
+                # If no standard company column found, show available columns
+                available_cols = ', '.join(df.columns.tolist())
+                return f"Could not find a company name column. Available columns: {available_cols}. Please ensure your file has a column named 'Company', 'Name', or similar.", 400
+
+            # E. Enhanced column standardization - map various column names to standard ones
+            column_mappings = {
+                # Company name (already handled above)
+                'Company': company_column,
+                
+                # Exchange mappings
+                'Exchange': find_column(df, ['Exchange', 'Stock_Exchange', 'Listed_Exchange', 'Market']),
+                
+                # Sector mappings
+                'Sector': find_column(df, ['Sector', 'Primary Industry Sector', 'Industry_Sector', 'Business_Sector', 'Sector_Name']),
+                
+                # Industry mappings  
+                'Industry': find_column(df, ['Industry', 'Primary Industry Group', 'Industry_Group', 'Sub_Industry', 'Industry_Name', 'Business_Industry']),
+                
+                # Country mappings
+                'Country': find_column(df, ['Country', 'HQ Global Country/Territory', 'HQ_Country', 'Headquarters_Country', 'Location_Country']),
+                
+                # City mappings
+                'City': find_column(df, ['City', 'HQ City', 'HQ_City', 'Headquarters_City', 'Location', 'Office_Location']),
+                
+                # Market cap mappings
+                'Market_Cap_USD': find_column(df, ['Market_Cap_USD', 'Market Cap', 'Market_Cap', 'MarketCap', 'Market_Capitalization']),
+                
+                # Australian subsidiary mappings
+                'Has_Australian_Subsidiary': find_column(df, ['Has_Australian_Subsidiary', 'Australian_Subsidiary', 'AUS_Subsidiary', 'Australia_Operations'])
+            }
+            
+            # Apply column mappings (rename columns to standard names)
+            rename_dict = {}
+            for standard_name, source_column in column_mappings.items():
+                if source_column and source_column in df.columns and source_column != standard_name:
+                    rename_dict[source_column] = standard_name
+            
+            if rename_dict:
+                df = df.rename(columns=rename_dict)
+                print(f"Mapped columns: {rename_dict}")
+                
+                # Update company_column if it was renamed
+                if company_column in rename_dict:
+                    company_column = rename_dict[company_column]
+            
+            # F. Clean and validate the data
+            # Remove rows where company name is missing
+            df = df.dropna(subset=[company_column])
+            df = df[df[company_column].astype(str).str.strip() != '']
+            
+            if len(df) == 0:
+                return "No valid company data found in the file.", 400
+            
+            # Standardize the company column name to 'Company' for consistency
+            if company_column != 'Company':
+                df = df.rename(columns={company_column: 'Company'})
+            
+            # G. Show user what columns were detected
+            detected_columns = df.columns.tolist()
+            print(f"Successfully loaded {len(df)} companies with columns: {detected_columns}")
+            
+            # G. Store `df` in session‐like place with cleaned data
+            df.to_csv("/tmp/uploads/last_upload.csv", index=False)
+
+            # F. Redirect to the "select companies" page
+            return redirect(url_for("select_companies"))
+            
         except Exception as e:
-            return f"Error reading file: {e}", 400
-
-        # D. Intelligent column detection - find the main company identifier column
-        company_column = None
-        possible_company_names = ['Company', 'company', 'Company Name', 'company_name', 
-                                'CompanyName', 'Name', 'name', 'Symbol', 'Ticker', 
-                                'Company_Name', 'COMPANY', 'COMPANY_NAME', 'Issuer',
-                                'Company Legal Name', 'Legal Name']
-        
-        for col_name in possible_company_names:
-            if col_name in df.columns:
-                company_column = col_name
-                break
-        
-        if company_column is None:
-            # If no standard company column found, show available columns
-            available_cols = ', '.join(df.columns.tolist())
-            return f"Could not find a company name column. Available columns: {available_cols}. Please ensure your file has a column named 'Company', 'Name', or similar.", 400
-
-        # E. Enhanced column standardization - map various column names to standard ones
-        column_mappings = {
-            # Company name (already handled above)
-            'Company': company_column,
-            
-            # Exchange mappings
-            'Exchange': find_column(df, ['Exchange', 'Stock_Exchange', 'Listed_Exchange', 'Market']),
-            
-            # Sector mappings
-            'Sector': find_column(df, ['Sector', 'Primary Industry Sector', 'Industry_Sector', 'Business_Sector', 'Sector_Name']),
-            
-            # Industry mappings  
-            'Industry': find_column(df, ['Industry', 'Primary Industry Group', 'Industry_Group', 'Sub_Industry', 'Industry_Name', 'Business_Industry']),
-            
-            # Country mappings
-            'Country': find_column(df, ['Country', 'HQ Global Country/Territory', 'HQ_Country', 'Headquarters_Country', 'Location_Country']),
-            
-            # City mappings
-            'City': find_column(df, ['City', 'HQ City', 'HQ_City', 'Headquarters_City', 'Location', 'Office_Location']),
-            
-            # Market cap mappings
-            'Market_Cap_USD': find_column(df, ['Market_Cap_USD', 'Market Cap', 'Market_Cap', 'MarketCap', 'Market_Capitalization']),
-            
-            # Australian subsidiary mappings
-            'Has_Australian_Subsidiary': find_column(df, ['Has_Australian_Subsidiary', 'Australian_Subsidiary', 'AUS_Subsidiary', 'Australia_Operations'])
-        }
-        
-        # Apply column mappings (rename columns to standard names)
-        rename_dict = {}
-        for standard_name, source_column in column_mappings.items():
-            if source_column and source_column in df.columns and source_column != standard_name:
-                rename_dict[source_column] = standard_name
-        
-        if rename_dict:
-            df = df.rename(columns=rename_dict)
-            print(f"Mapped columns: {rename_dict}")
-            
-            # Update company_column if it was renamed
-            if company_column in rename_dict:
-                company_column = rename_dict[company_column]
-        
-        # F. Clean and validate the data
-        # Remove rows where company name is missing
-        df = df.dropna(subset=[company_column])
-        df = df[df[company_column].astype(str).str.strip() != '']
-        
-        if len(df) == 0:
-            return "No valid company data found in the file.", 400
-        
-        # Standardize the company column name to 'Company' for consistency
-        if company_column != 'Company':
-            df = df.rename(columns={company_column: 'Company'})
-        
-        # G. Show user what columns were detected
-        detected_columns = df.columns.tolist()
-        print(f"Successfully loaded {len(df)} companies with columns: {detected_columns}")
-        
-        # G. Store `df` in session‐like place with cleaned data
-        df.to_csv("uploads/last_upload.csv", index=False)
-
-        # F. Redirect to the "select companies" page
-        return redirect(url_for("select_companies"))
+            # Catch any unexpected errors and return a helpful message
+            import traceback
+            error_details = str(e)
+            print(f"Upload error: {error_details}")
+            print(f"Traceback: {traceback.format_exc()}")
+            return f"An error occurred while processing your file: {error_details}. Please try again or check your file format.", 500
 
     # If GET, just render the upload form
     return render_template("upload.html")
@@ -189,7 +200,7 @@ def upload_file():
 def select_companies():
     # A. Load the stored DataFrame
     try:
-        df = pd.read_csv("uploads/last_upload.csv")
+        df = pd.read_csv("/tmp/uploads/last_upload.csv")
     except FileNotFoundError:
         return redirect(url_for("upload_file"))
 
@@ -340,7 +351,7 @@ def select_companies():
             return "No companies selected", 400
 
         # Save the indices into a temp file for step 3
-        with open("uploads/selected_companies.txt", "w") as f:
+        with open("/tmp/uploads/selected_companies.txt", "w") as f:
             f.write(",".join(selected))
         return redirect(url_for("generate_emails"))
 
@@ -370,9 +381,9 @@ def select_companies():
 @app.route("/generate", methods=["GET"])
 def generate_emails():
     # A. Load DataFrame and selected indices
-    df = pd.read_csv("uploads/last_upload.csv")
+    df = pd.read_csv("/tmp/uploads/last_upload.csv")
     try:
-        with open("uploads/selected_companies.txt", "r") as f:
+        with open("/tmp/uploads/selected_companies.txt", "r") as f:
             selected_indices = [int(x) for x in f.read().split(",") if x.strip().isdigit()]
     except FileNotFoundError:
         return redirect(url_for("select_companies"))
