@@ -1,0 +1,768 @@
+<!-- templates/results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Emails - ASX Listing Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        
+        .step {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #e5e7eb;
+            font-weight: 500;
+        }
+        
+        .step.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .summary-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #10b981, #059669);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: white;
+            font-size: 36px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .summary-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        
+        .summary-subtext {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        
+        .email-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .email-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+        }
+        
+        .email-header {
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .email-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        
+        .company-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .company-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .email-content {
+            padding: 30px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-title i {
+            color: #667eea;
+        }
+        
+        .info-details {
+            display: grid;
+            gap: 8px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-size: 0.9rem;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        
+        .contact-email {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .contact-email:hover {
+            text-decoration: underline;
+        }
+        
+        .news-section {
+            background: #fef7ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #7c3aed;
+        }
+        
+        .news-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+            line-height: 1.5;
+        }
+        
+        .news-item:last-child {
+            border-bottom: none;
+        }
+        
+        .analyzed-data-section {
+            background: #f0f9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #0ea5e9;
+        }
+        
+        .data-toggle {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            gap: 10px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        
+        .data-content {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .data-content.expanded {
+            display: block;
+        }
+        
+        .data-category {
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .data-category h5 {
+            margin-bottom: 10px;
+            color: #374151;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        
+        .data-category ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .data-category li {
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+        
+        .email-draft-section {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 16px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .email-draft-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .draft-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .copy-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .email-text {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .actions-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 40px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .email-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h1>ASX Listing Generator</h1>
+            </div>
+            <div class="step-indicator">
+                <div class="step">Upload</div>
+                <i class="fas fa-chevron-right"></i>
+                <div class="step">Select Companies</div>
+                <i class="fas fa-chevron-right"></i>
+                <div class="step active">Generate Emails</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Summary Card -->
+        <div class="summary-card">
+            <div class="success-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="summary-text">{{ results|length }} Personalized Emails Generated!</div>
+            <div class="summary-subtext">Each email is customized with company-specific information and real-time news analysis</div>
+        </div>
+        
+        <!-- Email Cards -->
+        {% for item in results %}
+        <div class="email-card">
+            <div class="email-header">
+                <div class="company-name">{{ item.company }}</div>
+                <div class="company-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>{{ item.exchange }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-globe"></i>
+                        <span>{{ item.country }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-industry"></i>
+                        <span>{{ item.sector }}</span>
+                    </div>
+                    {% if item.market_cap != 'Unknown' %}
+                    <div class="meta-item">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>${{ "{:,.0f}".format(item.market_cap|float) if item.market_cap|string != 'Unknown' else 'Unknown' }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="email-content">
+                <!-- Company Information Grid -->
+                <div class="info-grid">
+                    <!-- Company Details -->
+                    <div class="info-section">
+                        <div class="info-title">
+                            <i class="fas fa-building"></i>
+                            Company Details
+                        </div>
+                        <div class="info-details">
+                            <div class="info-item">
+                                <span class="info-label">Exchange</span>
+                                <span class="info-value">{{ item.exchange }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Country</span>
+                                <span class="info-value">{{ item.country }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Sector</span>
+                                <span class="info-value">{{ item.sector }}</span>
+                            </div>
+                            {% if item.market_cap != 'Unknown' %}
+                            <div class="info-item">
+                                <span class="info-label">Market Cap</span>
+                                <span class="info-value">${{ "{:,.0f}".format(item.market_cap|float) if item.market_cap|string != 'Unknown' else 'Unknown' }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="info-item">
+                                <span class="info-label">Australian Sub</span>
+                                <span class="info-value">{{ item.has_aus_sub }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact Information -->
+                    <div class="info-section">
+                        <div class="info-title">
+                            <i class="fas fa-address-book"></i>
+                            Key Contacts
+                        </div>
+                        <div class="info-details">
+                            {% if item.ceo_name != 'Unknown' %}
+                            <div class="info-item">
+                                <span class="info-label">CEO</span>
+                                <span class="info-value">{{ item.ceo_name }}</span>
+                            </div>
+                            {% endif %}
+                            {% if item.ceo_email != 'Unknown' %}
+                            <div class="info-item">
+                                <span class="info-label">CEO Email</span>
+                                <a href="mailto:{{ item.ceo_email }}" class="contact-email">{{ item.ceo_email }}</a>
+                            </div>
+                            {% endif %}
+                            {% if item.ir_contact != 'Unknown' %}
+                            <div class="info-item">
+                                <span class="info-label">Investor Relations</span>
+                                <a href="mailto:{{ item.ir_contact }}" class="contact-email">{{ item.ir_contact }}</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- News Headlines -->
+                <div class="news-section">
+                    <div class="info-title">
+                        <i class="fas fa-newspaper"></i>
+                        Recent News Analysis
+                    </div>
+                    {% for hl in item.headlines %}
+                        <div class="news-item">{{ hl }}</div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Analyzed Data Section -->
+                {% if item.analyzed_data %}
+                <div class="analyzed-data-section">
+                    <div class="data-toggle" onclick="toggleDataSection(this)">
+                        <div class="info-title">
+                            <i class="fas fa-chart-pie"></i>
+                            Data Analysis Used in Email
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="data-content">
+                        {% if item.analyzed_data.financial_metrics %}
+                        <div class="data-category">
+                            <h5>💰 Financial Metrics</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.financial_metrics.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.analyzed_data.business_info %}
+                        <div class="data-category">
+                            <h5>🏢 Business Information</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.business_info.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value[:100] }}{% if value|length > 100 %}...{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.analyzed_data.geographic_info %}
+                        <div class="data-category">
+                            <h5>🌍 Geographic Information</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.geographic_info.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.analyzed_data.leadership_info %}
+                        <div class="data-category">
+                            <h5>👥 Leadership Information</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.leadership_info.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.analyzed_data.recent_activities %}
+                        <div class="data-category">
+                            <h5>📈 Recent Activities</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.recent_activities.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.analyzed_data.other_relevant %}
+                        <div class="data-category">
+                            <h5>ℹ️ Other Relevant Data</h5>
+                            <ul>
+                                {% for key, value in item.analyzed_data.other_relevant.items() %}
+                                <li><strong>{{ key }}:</strong> {{ value[:100] }}{% if value|length > 100 %}...{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Generated Email -->
+                <div class="email-draft-section">
+                    <div class="email-draft-header">
+                        <div class="draft-title">
+                            <i class="fas fa-envelope"></i>
+                            Personalized Email Draft
+                        </div>
+                        <button class="copy-btn" onclick="copyEmail(this, '{{ item.company }}')">
+                            <i class="fas fa-copy"></i> Copy Email
+                        </button>
+                    </div>
+                    <div class="email-text">{{ item.email_draft }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- Actions Card -->
+        <div class="actions-card">
+            <h3 style="margin-bottom: 20px; color: #1f2937;">What's Next?</h3>
+            <div class="action-buttons">
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Generate More Emails
+                </a>
+                <button onclick="downloadAllEmails()" class="btn btn-secondary">
+                    <i class="fas fa-download"></i> Download All Emails
+                </button>
+                <button onclick="copyAllEmails()" class="btn btn-secondary">
+                    <i class="fas fa-copy"></i> Copy All Emails
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleDataSection(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('.fa-chevron-down, .fa-chevron-up');
+            
+            content.classList.toggle('expanded');
+            
+            if (content.classList.contains('expanded')) {
+                icon.className = 'fas fa-chevron-up';
+            } else {
+                icon.className = 'fas fa-chevron-down';
+            }
+        }
+        
+        function copyEmail(button, companyName) {
+            const emailText = button.closest('.email-draft-section').querySelector('.email-text').textContent;
+            
+            navigator.clipboard.writeText(emailText).then(() => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.style.background = 'linear-gradient(45deg, #10b981, #059669)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'linear-gradient(45deg, #667eea, #764ba2)';
+                }, 2000);
+            });
+        }
+        
+        function copyAllEmails() {
+            const emailTexts = Array.from(document.querySelectorAll('.email-text')).map(el => el.textContent);
+            const allEmails = emailTexts.join('\n\n--- Next Email ---\n\n');
+            
+            navigator.clipboard.writeText(allEmails).then(() => {
+                alert('All emails copied to clipboard!');
+            });
+        }
+        
+        function downloadAllEmails() {
+            const emails = [];
+            const emailCards = document.querySelectorAll('.email-card');
+            
+            emailCards.forEach(card => {
+                const company = card.querySelector('.company-name').textContent;
+                const email = card.querySelector('.email-text').textContent;
+                emails.push(`Company: ${company}\n\n${email}`);
+            });
+            
+            const content = emails.join('\n\n=================\n\n');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'asx-listing-emails.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html> 

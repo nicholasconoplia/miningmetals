@@ -1,0 +1,712 @@
+<!-- templates/select.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Companies - ASX Listing Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        
+        .step {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #e5e7eb;
+            font-weight: 500;
+        }
+        
+        .step.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .filters-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .filters-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .filters-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #4f46e5, #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .filters-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .filter-group select {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: white;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .stats-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stats-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .stats-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #10b981, #059669);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .stats-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .select-all-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .select-all-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+        }
+        
+        .checkbox-wrapper {
+            position: relative;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            appearance: none;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"]:checked {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-color: #667eea;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .company-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .company-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .company-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.12);
+        }
+        
+        .company-card.selected {
+            border-color: #667eea;
+            box-shadow: 0 12px 48px rgba(102, 126, 234, 0.2);
+        }
+        
+        .company-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .company-exchange {
+            display: inline-block;
+            padding: 4px 12px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .company-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .detail-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .submit-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .submit-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .company-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-card {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h1>ASX Listing Generator</h1>
+            </div>
+            <div class="step-indicator">
+                <div class="step">Upload</div>
+                <i class="fas fa-chevron-right"></i>
+                <div class="step active">Select Companies</div>
+                <i class="fas fa-chevron-right"></i>
+                <div class="step">Generate Emails</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Filters Card -->
+        <div class="filters-card">
+            <div class="filters-header">
+                <div class="filters-icon">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <h2 class="filters-title">Smart Filtering</h2>
+            </div>
+            
+            <form method="GET" action="/select">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label for="exchange">Exchange</label>
+                        <select name="exchange" id="exchange">
+                            <option value="">All Exchanges</option>
+                            {% for exchange in exchanges %}
+                                <option value="{{ exchange }}" {% if current_filters.exchange == exchange %}selected{% endif %}>
+                                    {{ exchange }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="country">Country</label>
+                        <select name="country" id="country">
+                            <option value="">All Countries</option>
+                            {% for country in countries %}
+                                <option value="{{ country }}" {% if current_filters.country == country %}selected{% endif %}>
+                                    {{ country }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="sector">Sector</label>
+                        <select name="sector" id="sector">
+                            <option value="">All Sectors</option>
+                            {% for sector in sectors %}
+                                <option value="{{ sector }}" {% if current_filters.sector == sector %}selected{% endif %}>
+                                    {{ sector }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    {% if industries %}
+                    <div class="filter-group">
+                        <label for="industry">Industry</label>
+                        <select name="industry" id="industry">
+                            <option value="">All Industries</option>
+                            {% for industry in industries %}
+                                <option value="{{ industry }}" {% if current_filters.industry == industry %}selected{% endif %}>
+                                    {{ industry }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="filter-group">
+                        <label for="market_cap_range">Market Cap Range</label>
+                        <select name="market_cap_range" id="market_cap_range">
+                            <option value="">All Market Caps</option>
+                            {% for range_value, range_label in market_cap_ranges %}
+                                <option value="{{ range_value }}" {% if current_filters.market_cap_range == range_value %}selected{% endif %}>
+                                    {{ range_label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    {% if locations %}
+                    <div class="filter-group">
+                        <label for="location">Location</label>
+                        <select name="location" id="location">
+                            <option value="">All Locations</option>
+                            {% for location in locations %}
+                                <option value="{{ location }}" {% if current_filters.location == location %}selected{% endif %}>
+                                    {{ location }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="filter-group">
+                        <label for="australian_sub">Australian Subsidiary</label>
+                        <select name="australian_sub" id="australian_sub">
+                            <option value="">Any</option>
+                            <option value="Yes" {% if current_filters.australian_sub == 'Yes' %}selected{% endif %}>Yes</option>
+                            <option value="No" {% if current_filters.australian_sub == 'No' %}selected{% endif %}>No</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-buttons">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Apply Filters
+                    </button>
+                    <a href="/select" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Stats Card -->
+        <div class="stats-card">
+            <div class="stats-content">
+                <div class="stats-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stats-text">{{ companies|length }} companies found</div>
+            </div>
+        </div>
+        
+        <!-- Company Selection Form -->
+        <form id="selectionForm" method="POST" action="/select">
+            <!-- Select All Card -->
+            <div class="select-all-card">
+                <div class="select-all-content" onclick="toggleAll()">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="selectAllCheckbox">
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #1f2937;">Select All Companies</div>
+                        <div style="font-size: 0.9rem; color: #6b7280;">Choose all {{ companies|length }} companies for email generation</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Company Grid -->
+            <div class="company-grid">
+                {% for company in companies %}
+                    <div class="company-card" onclick="toggleCompany(this, {{ company.original_index }})">
+                        <div class="company-header">
+                            <div class="company-info">
+                                <div class="company-name">{{ company.name }}</div>
+                                <div class="company-exchange">{{ company.exchange }}</div>
+                            </div>
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" name="company" value="{{ company.original_index }}" class="company-checkbox">
+                            </div>
+                        </div>
+                        
+                        <div class="company-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Country</div>
+                                <div class="detail-value">{{ company.country }}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Sector</div>
+                                <div class="detail-value">{{ company.sector }}</div>
+                            </div>
+                            {% if company.industry != 'N/A' %}
+                            <div class="detail-item">
+                                <div class="detail-label">Industry</div>
+                                <div class="detail-value">{{ company.industry }}</div>
+                            </div>
+                            {% endif %}
+                            {% if company.city != 'N/A' %}
+                            <div class="detail-item">
+                                <div class="detail-label">City</div>
+                                <div class="detail-value">{{ company.city }}</div>
+                            </div>
+                            {% endif %}
+                            {% if company.market_cap != 'N/A' %}
+                            <div class="detail-item">
+                                <div class="detail-label">Market Cap</div>
+                                <div class="detail-value">${{ "{:,.0f}".format(company.market_cap|float) if company.market_cap|string != 'N/A' else 'N/A' }}</div>
+                            </div>
+                            {% endif %}
+                            <div class="detail-item">
+                                <div class="detail-label">Australian Sub</div>
+                                <div class="detail-value">{{ company.has_aus_sub }}</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Submit Section -->
+            <div class="submit-section">
+                <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                    <i class="fas fa-magic"></i> Generate Personalized Emails
+                </button>
+                <div style="margin-top: 15px; font-size: 0.9rem; color: #6b7280;">
+                    Select companies above to generate AI-powered ASX listing emails
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        function toggleAll() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const companyCheckboxes = document.querySelectorAll('.company-checkbox');
+            const companyCards = document.querySelectorAll('.company-card');
+            
+            selectAllCheckbox.checked = !selectAllCheckbox.checked;
+            
+            companyCheckboxes.forEach((checkbox, index) => {
+                checkbox.checked = selectAllCheckbox.checked;
+                if (selectAllCheckbox.checked) {
+                    companyCards[index].classList.add('selected');
+                } else {
+                    companyCards[index].classList.remove('selected');
+                }
+            });
+            
+            updateSubmitButton();
+        }
+        
+        function toggleCompany(card, index) {
+            const checkbox = card.querySelector('.company-checkbox');
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+            
+            updateSelectAllState();
+            updateSubmitButton();
+        }
+        
+        function updateSelectAllState() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const companyCheckboxes = document.querySelectorAll('.company-checkbox');
+            const checkedBoxes = document.querySelectorAll('.company-checkbox:checked');
+            
+            selectAllCheckbox.checked = checkedBoxes.length === companyCheckboxes.length;
+        }
+        
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitBtn');
+            const checkedBoxes = document.querySelectorAll('.company-checkbox:checked');
+            
+            submitBtn.disabled = checkedBoxes.length === 0;
+            
+            if (checkedBoxes.length > 0) {
+                submitBtn.innerHTML = `<i class="fas fa-magic"></i> Generate ${checkedBoxes.length} Personalized Emails`;
+            } else {
+                submitBtn.innerHTML = `<i class="fas fa-magic"></i> Generate Personalized Emails`;
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSubmitButton();
+            
+            document.getElementById('selectionForm').addEventListener('submit', function() {
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                submitBtn.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html> 
